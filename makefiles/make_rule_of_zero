@@ -1,0 +1,115 @@
+#
+#	Makefile to build The rule_of_zero
+#
+#	Command Line:
+#	1. make: normal build
+#	2. make -e TEST_FLAGS=<optional flags> for test build
+#
+
+ENV_OS=$(shell uname)
+
+
+CSCI_NAME=rule_of_zero
+
+CC=gcc
+CPP=g++
+LINK=g++
+HOME_PROJECT=..
+MAKEFILE=$(HOME_PROJECT)/makefiles/make_$(CSCI_NAME)
+SRC_CSCI=$(HOME_PROJECT)/$(CSCI_NAME)/src
+INC_CSCI=$(HOME_PROJECT)/$(CSCI_NAME)/inc
+
+#OBJ PATH
+OBJ_CSCI=$(HOME_PROJECT)/$(CSCI_NAME)/obj
+
+EXE_CSCI=$(HOME_PROJECT)/bin
+SRC_CMN=$(HOME_PROJECT)/common/src
+INC_CMN=$(HOME_PROJECT)/common/inc
+
+TEST_FLAGS =
+
+#EXECUTABLE NAME
+EXENAME = $(CSCI_NAME)
+
+
+OPT = $(TEST_FLAGS)
+LINKER_OPT = -lm -lpthread -o
+
+TARGET = $(EXE_CSCI)/$(EXENAME)
+
+LIST_INC = \
+	-I$(INC_CSCI) \
+	-I$(INC_CMN) \
+	$(END_OF_LIST)
+
+LIST_LIB = 
+
+ifeq ($(ENV_OS),Linux)
+	LIST_OBJ =\
+		$(OBJ_CSCI)/main.o \
+		$(END_OF_LIST)
+endif
+
+$(shell test -d $(OBJ_CSCI) || mkdir -p $(OBJ_CSCI))
+
+#default rule
+all: $(TARGET)
+
+$(TARGET) : $(LIST_OBJ) $(LIST_LIB) $(MAKEFILE)
+	$(LINK) $(LIST_OBJ) $(LIST_LIB) $(LINKER_OPT) $@
+
+#loading sources dependencies
+-include $(LIST_OBJ:.o=.d)
+
+
+#loading sources dependencies (only when not-"clean*" rule is called).
+# PREMOLI DEBUG: da verificare (vengono cancellati i file delle dipendenze).
+#ifeq (0, $(words, $(findstring $(MAKECMDGOALS), "clean")))
+-include $(LIST_OBJ:.o=.d)
+#endif
+
+
+#rule for ".c" source files dependencies evaluation
+$(OBJ_CSCI)/%.d: $(SRC_CSCI)/%.c $(MAKEFILE)
+	$(CC) $(OPT) $(LIST_INC) -MM -MF $@ -MT $(@:.d=.o) $<
+
+
+#rule for ".cpp" source files dependencies evaluation
+$(OBJ_CSCI)/%.d : $(SRC_CSCI)/%.cpp $(MAKEFILE)
+	$(CPP) $(OPT) $(LIST_INC) -MM -MF $@ -MT $(@:.d=.o) $<
+
+
+#rule for ".c" $(SRC_CMN) source files dependencies evaluation
+$(OBJ_CSCI)/%.d: $(SRC_CMN)/%.c $(MAKEFILE)
+	$(CC) $(OPT) $(LIST_INC) -MM -MF $@ -MT $(@:.d=.o) $<
+
+
+#rule for ".cpp" $(SRC_CMN) source files dependencies evaluation
+$(OBJ_CSCI)/%.d : $(SRC_CMN)/%.cpp $(MAKEFILE)
+	$(CPP) $(OPT) $(LIST_INC) -MM -MF $@ -MT $(@:.d=.o) $<
+
+
+#rule to compile ".c" source files
+$(OBJ_CSCI)/%.o: $(SRC_CSCI)/%.c $(OBJ_CSCI)/%.d $(MAKEFILE)
+	$(CC) -c $(OPT) $(LIST_INC) -o $@ $<
+
+#rule to compile ".cpp" source files
+$(OBJ_CSCI)/%.o: $(SRC_CSCI)/%.cpp $(OBJ_CSCI)/%.d $(MAKEFILE)
+	$(CPP) -c $(OPT) $(LIST_INC) -o $@ $<
+
+#rule to compile ".c" $(SRC_CMN) source files
+$(OBJ_CSCI)/%.o: $(SRC_CMN)/%.c $(OBJ_CSCI)/%.d $(MAKEFILE)
+	$(CC) -c $(OPT) $(LIST_INC) -o $@ $<
+
+
+#rule to compile ".cpp" $(SRC_CMN) source files
+$(OBJ_CSCI)/%.o: $(SRC_CMN)/%.cpp $(OBJ_CSCI)/%.d $(MAKEFILE)
+	$(CPP) -c $(OPT) $(LIST_INC) -o $@ $<
+
+#
+clean:
+	rm -f $(LIST_OBJ) $(LIST_OBJ:.o=.d)
+#
+#
+cleanall: clean
+	rm -f $(TARGET)
